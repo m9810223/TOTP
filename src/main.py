@@ -16,23 +16,21 @@ def truncate(x, length):
 
 
 def leftrotate(x, shift_size=1, length=32):
-    return ((x << shift_size) | (x >> (length-shift_size))) & ((2**length)-1)
+    return ((x << shift_size) | (x >> (length - shift_size))) & ((2**length) - 1)
 
 
 def sha1(message=b''):
     # print('sha1-message', [x for x in message])
     """
-        ref: https://zh.wikipedia.org/wiki/SHA-1
+    ref: https://zh.wikipedia.org/wiki/SHA-1
     """
 
     message = cast_to_bytes(message)
 
-    internal_state_size = 160
-    word_size = 32
     block_size = 512
+    word_size = 32
+    size = int(block_size / word_size)
     rounds = 80
-
-    size = int(rounds / (internal_state_size / word_size))
 
     # Initial variables
     hash_value = [
@@ -52,7 +50,7 @@ def sha1(message=b''):
     # append k bits '0', where k is the minimum number >= 0 such that the resulting message length ( in bits) is congruent to 448(mod 512)
     # k = block_size - (message_bit_length + 1 + block_size - 448) % block_size
     message_bit_length = len(message) * 8
-    k = (448-(message_bit_length+1) % block_size+block_size) % block_size
+    k = (448 - (message_bit_length + 1) + block_size) % block_size
     buffer <<= k
 
     # append length of message
@@ -74,7 +72,9 @@ def sha1(message=b''):
     # Process the message in successive 512-bit chunks
     for words in chunks:
         for i in range(size, rounds):
-            new_word = leftrotate(words[i-3] ^ words[i-8] ^ words[i-14] ^ words[i-16])
+            new_word = leftrotate(
+                words[i - 3] ^ words[i - 8] ^ words[i - 14] ^ words[i - 16]
+            )
             words.append(new_word)
 
         # Initialize hash value for this chunk:
@@ -83,7 +83,7 @@ def sha1(message=b''):
         # Main loop
         for i in range(rounds):
             if i < 20:
-                f = (b & c) | ((~ b) & d)
+                f = (b & c) | ((~b) & d)
                 k = 0x5A827999
             elif i < 40:
                 f = b ^ c ^ d
@@ -118,9 +118,9 @@ def sha1(message=b''):
 
 def hmac(key, msg, digestmod, blocksize=64):
     """
-        ref: 
-            https://zh.wikipedia.org/wiki/HMAC
-            https://csrc.nist.gov/csrc/media/publications/fips/198/archive/2002-03-06/documents/fips-198a.pdf
+    ref:
+        https://zh.wikipedia.org/wiki/HMAC
+        https://csrc.nist.gov/csrc/media/publications/fips/198/archive/2002-03-06/documents/fips-198a.pdf
     """
 
     key = cast_to_bytes(key)
@@ -143,7 +143,7 @@ def hmac(key, msg, digestmod, blocksize=64):
     if len(key) < blocksize:
         key = key + b'\x00' * (blocksize - len(key))
 
-    o_key_pad = bytes_xor(key,  b'\x5c' * blocksize)
+    o_key_pad = bytes_xor(key, b'\x5c' * blocksize)
     i_key_pad = bytes_xor(key, b'\x36' * blocksize)
 
     result = digestmod(o_key_pad + digestmod(i_key_pad + msg))
@@ -153,15 +153,13 @@ def hmac(key, msg, digestmod, blocksize=64):
 
 def b32d(message):
     """
-        ref: https://en.wikipedia.org/wiki/Base32
+    ref: https://en.wikipedia.org/wiki/Base32
     """
 
     message = cast_to_bytes(message)
 
     def baseXdecoder(base_size):
-        alphabet = {
-            5: b'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'
-        }[base_size]
+        alphabet = {5: b'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'}[base_size]
         decoder = {alphabet[i]: i for i in range(2**base_size)}
         return decoder
 
@@ -192,9 +190,9 @@ def otp(hasher, length):
     hasher = bytearray(hasher)
 
     # 取最右邊的 4 bit 作為 offset
-    offset = hasher[-1] & 0xf
-    hmac_hash = bytes(hasher[offset:offset+4])
-    code = int.from_bytes(hmac_hash, 'big') & 0x7fffffff
+    offset = hasher[-1] & 0xF
+    hmac_hash = bytes(hasher[offset : offset + 4])
+    code = int.from_bytes(hmac_hash, 'big') & 0x7FFFFFFF
 
     result = str(code)[-length:]
     return result
@@ -204,6 +202,7 @@ def totp_pyotp(message):
     if isinstance(message, bytes):
         message = message.decode()
     from pyotp import TOTP
+
     result = TOTP(message).now()
     print(result, '(use pyotp)')
     return result
@@ -216,37 +215,39 @@ def totp_builtin_lib(key, msg, length):
     if missing != 0:
         key += b'=' * (8 - missing)
     from base64 import b32decode
+
     key = b32decode(key)
     import hmac
     from hashlib import sha1
+
     hasher = hmac.new(key, msg, sha1).digest()
 
     hmac_hash = bytearray(hasher)
 
     # 取最右邊的 4 bit 作為 offset
-    offset = hmac_hash[-1] & 0xf
+    offset = hmac_hash[-1] & 0xF
 
     code = (  # ref: pyotp
-        (hmac_hash[offset] & 0b01111111) << 24 |
-        (hmac_hash[offset+1] & 0b11111111) << 16 |
-        (hmac_hash[offset+2] & 0b11111111) << 8 |
-        (hmac_hash[offset+3] & 0b11111111)
+        (hmac_hash[offset] & 0b01111111) << 24
+        | (hmac_hash[offset + 1] & 0b11111111) << 16
+        | (hmac_hash[offset + 2] & 0b11111111) << 8
+        | (hmac_hash[offset + 3] & 0b11111111)
     )
 
-    result = str(code % (10 ** length)).zfill(length)
+    result = str(code % (10**length)).zfill(length)
     print(result, '(use only builtin lib)')
     return result
 
 
 def main(key, msg, length, b32d_func, digestmod, hmac_func, otp_func):
     """
-        use:
-            1. python `time` library 
-            1. self-made functions:
-                - base32 decode 
-                - SHA-1
-                - HMAC
-                - TOTP
+    use:
+        1. python `time` library
+        1. self-made functions:
+            - base32 decode
+            - SHA-1
+            - HMAC
+            - TOTP
     """
     key = b32d_func(key)
     hasher = hmac_func(key=key, msg=msg, digestmod=digestmod)
@@ -260,8 +261,9 @@ if __name__ == '__main__':
     DIGITS = 6
     INTERVAL = 30
     from time import time
+
     TIMECODE = (int(time()) // INTERVAL).to_bytes(8, 'big')
-    SECRET = 'H'*32
+    SECRET = 'H' * 32
 
     # self-made
     main(SECRET, TIMECODE, DIGITS, b32d, sha1, hmac, otp)
