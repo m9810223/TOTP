@@ -72,9 +72,7 @@ def sha1(message=b''):
     # Process the message in successive 512-bit chunks
     for words in chunks:
         for i in range(size, rounds):
-            new_word = leftrotate(
-                words[i - 3] ^ words[i - 8] ^ words[i - 14] ^ words[i - 16]
-            )
+            new_word = leftrotate(words[i - 3] ^ words[i - 8] ^ words[i - 14] ^ words[i - 16])
             words.append(new_word)
 
         # Initialize hash value for this chunk:
@@ -227,12 +225,12 @@ def totp_builtin_lib(key, msg, length):
     # 取最右邊的 4 bit 作為 offset
     offset = hmac_hash[-1] & 0xF
 
-    code = (  # ref: pyotp
+    code = (
         (hmac_hash[offset] & 0b01111111) << 24
         | (hmac_hash[offset + 1] & 0b11111111) << 16
         | (hmac_hash[offset + 2] & 0b11111111) << 8
         | (hmac_hash[offset + 3] & 0b11111111)
-    )
+    )  # ref: pyotp
 
     result = str(code % (10**length)).zfill(length)
     print(result, '(use only builtin lib)')

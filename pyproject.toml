@@ -1,15 +1,14 @@
 [tool.poetry]
+authors = ["m9810223 <m9810223@gmail.com>"]
+description = ""
 name = "totp"
 version = "0.1.0"
-description = ""
-authors = ["m9810223 <m9810223@gmail.com>"]
 
 [tool.poetry.dependencies]
 python = ">3.8,<4"
-pyotp = "^2.6.0"
 
 [tool.poetry.dev-dependencies]
+pyotp = "^2.6.0"
 
-[build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+[tool.black]
+line-length = 120
