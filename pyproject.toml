@@ -12,3 +12,18 @@ pyotp = "^2.6.0"
 
 [tool.black]
 line-length = 120
+
+[tool.pdm]
+[tool.pdm.dev-dependencies]
+dev = [
+  "pyotp<3.0.0,>=2.6.0",
+]
+
+[project]
+name = "totp"
+requires-python = ">=3.8.1,<4.0"
+version = "0.1.0"
+
+[build-system]
+build-backend = "pdm.pep517.api"
+requires = ["pdm-pep517>=1.0.0"]
